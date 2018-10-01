@@ -1,5 +1,5 @@
-# german-lm
-Script to train a n-gram Language Model (LM) of any order on any language with Wikipedia articles. See my blog post for details.
+# wiki-lm
+Script to train a n-gram Language Model (LM) of any order on any language with Wikipedia articles. See [my blog post](https://tiefenauer.github.io/blog/wiki-n-gram-lm/) for details.
 
 ## Usage:
 The script is located at [create_lm.sh](./create_lm.sh). Type `./create_lm.sh -h` to display the help.
@@ -29,3 +29,5 @@ The script will perform all steps necessary to create a corpus from the Wikipedi
    - make everything lowercase
 4. Estimate the probability of n-grams using `lmplz` and create an [ARPA](https://cmusphinx.github.io/wiki/arpaformat/) file containing the estimations  
 5. Create a binary KenLM model from the ARPA file using `build_binary` that can be loaded by the `kenlm` python module and used for fast estimation.
+
+(c) Daniel Tiefenauer

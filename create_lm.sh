@@ -123,6 +123,17 @@ if [ ! -f "${corpus_file}" ] ; then
             | grep -e "<doc" \
             | wc -l)
     echo "Processed ${result} articles and saved raw text in $corpus_file"
+
+    echo "Processed $(cat ${corpus_file} | wc -l) sentences"
+    echo "Processed $(cat ${corpus_file} | wc -w) words"
+    echo "Processed $(cat ${corpus_file} | xargs -n1 | sort | uniq -c) unique words"
+
+    echo "compressing $corpus_file. File size before:"
+    du -h ${corpus_file}
+    bzip2 ${corpus_file}
+    echo "done! Compressed file size:"
+    du -h ${corpus_file}.bz2
+
     # vocabulary must be recreated because corpus might have changed
     recreate_vocab = 1
 fi
@@ -152,22 +163,10 @@ if [ ${recreate_vocab} = 1 ] ; then
             bc) # sum up
     top_sum=$(cat ${lm_counts} |
             head -${top_words} | # limit to first $top_words entries here
-            tr -d ' [:alpha:]äöü<>\177' |
-            paste -sd+ | bc)
+            tr -d ' [:alpha:]äöü<>\177' | # same as above
+            paste -sd+ | bc) # same as above
     fraction=$(echo "scale=2 ; 100 * $top_sum / $total_sum" | bc)
     echo "Top $top_words words make up $fraction% of words"
-fi
-
-if [ -f ${corpus_file} ]; then
-    echo "Processed $(cat ${corpus_file} | wc -l) sentences"
-    echo "Processed $(cat ${corpus_file} | wc -w) words"
-    echo "Processed $(cat ${lm_vocab} | wc -l) unique words"
-
-    echo "compressing $corpus_file. File size before:"
-    du -h ${corpus_file}
-    bzip2 ${corpus_file}
-    echo "done! Compressed file size:"
-    du -h ${corpus_file}.bz2
 fi
 
 
