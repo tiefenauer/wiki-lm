@@ -1,36 +1,40 @@
 #!/usr/bin/env bash
 # set -xe
-usage="$(basename "$0") [-h] [-n n] [-l language] [-t top_words] [-r remove_artifacts] -- Create n-gram Language Model on ~2.2M Wikipedia articles using KenLM.
+usage="$(basename "$0") [-h] [-o <int>] [-l {'en'|'de'|'fr'|'it'|...}] [-d {'probing'|'trie'}] [-t <string> ] [-w <int>] [-r remove_artifacts] -- Create n-gram Language Model on ~2.2M Wikipedia articles using KenLM.
 where:
     -h  show this help text
     -o  set the order of the model, i.e. the n in n-gram (default: 4)
     -l  ISO 639-1 code of the language to train on (default: de)
     -d  data structure to use (use 'trie' or 'probing'). See https://kheafield.com/code/kenlm/structures/ for details. (default: trie)
-    -t  number of words in vocabulary to keep (default: 500,000)
+    -t  target directory to write to
+    -w  number of words in vocabulary to keep (default: 500,000)
     -r  remove intermediate artifacts after training. Only set this flag if you really don't want to train another model because creating intermediate artifacts can take a long time. (default: false)
 
+EXAMPLE USAGE: create a 4-gram model for German using the 400k most frequent words from the Wikipedia articles, using probing as data structure and removing everything but the trained model afterwards:
+
+./create_lm.sh -l de -o 4 -t 400000 -r
+
+Make sure the target directory specified by -t has enough free space (around 20-30G). KenLM binaries (lmplz and build_binary) need to be on the path. See https://kheafield.com/code/kenlm/ on how to build those.
+
 The following intermediate artifacts are created and may be removed after training by setting the -r flag:
-- ./tmp/[language]wiki-latest-pages-articles.xml.bz2: Downloaded wikipedia dump
-- ./tmp/[language]_clean: directory containing preprocessed Wikipedia articles
-- ./tmp/wiki_[language].txt.bz2: compressed file containing the Wikipedia corpus used to train the LM (raw text contents of the Wikipedia articles one sentence per line)
-- ./tmp/wiki_[language].counts: file containing the full vocabulary of the corpus and the number of occurrences of each word (sorted descending by number of occurrences)
-- ./tmp/wiki_[language].vocab: file containing the most frequent words of the corpus used for training (as defined by the -t argument) in the format expected by KenLM (words separated by spaces)
-- ./tmp/wiki_[language].arpa: ARPA file used to create the KenLM binary model
+- {target_dir}/tmp/[language]wiki-latest-pages-articles.xml.bz2: Downloaded wikipedia dump
+- {target_dir}/tmp/[language]_clean: directory containing preprocessed Wikipedia articles
+- {target_dir}/tmp/wiki_[language].txt.bz2: compressed file containing the Wikipedia corpus used to train the LM (raw text contents of the Wikipedia articles one sentence per line)
+- {target_dir}/tmp/wiki_[language].counts: file containing the full vocabulary of the corpus and the number of occurrences of each word (sorted descending by number of occurrences)
+- {target_dir}/tmp/wiki_[language].vocab: file containing the most frequent words of the corpus used for training (as defined by the -t argument) in the format expected by KenLM (words separated by spaces)
+- {target_dir}/tmp/wiki_[language].arpa: ARPA file used to create the KenLM binary model
 
 The following result files are created and will not be removed:
-- ./wiki_[language].klm: final KenLM n-gram LM in binary format.
+- {target_dir}/wiki_[language].klm: final KenLM n-gram LM in binary format.
+"
 
-Make sure the hard drive you run this script on contains enought free space (around 20-30G).
-KenLM binaries (lmplz and build_binary) need to be on the path. See https://kheafield.com/code/kenlm/ on how to build those.
-
-example usage to create a 4-gram model for German using the 400k most frequent words from the Wikipedia articles, using probing as data structure and removing everything but the trained model afterwards:
-./create_lm.sh -l de -o 4 -t 400000 -r
-    "
+# Defaults
 order=4
 language='de'
-remove_artifacts=false
-top_words=500000
 data_structure=trie
+top_words=500000
+target_dir='./'
+remove_artifacts=false
 
 while getopts ':hs:' option; do
   case "$option" in
@@ -41,7 +45,11 @@ while getopts ':hs:' option; do
        ;;
     l) language=$OPTARG
        ;;
-    t) top_words=$OPTARG
+    d) data_structure=$OPTARG
+       ;;
+    w) top_words=$OPTARG
+       ;;
+    t) target_dir=$OPTARG
        ;;
     r) remove_artifacts=true
        ;;
@@ -62,8 +70,7 @@ shift $((OPTIND - 1))
 # #################################
 corpus_name="wiki_${language}"
 lm_basename="${corpus_name}_${order}_gram"
-tmp_dir="./tmp"  # directory for intermediate artifacts
-lm_dir="./" # directory for trained model
+tmp_dir="${target_dir}/tmp"  # directory for intermediate artifacts
 
 cleaned_dir="${tmp_dir}/${corpus_name}_clean" # directory for WikiExtractor
 corpus_file="${tmp_dir}/${corpus_name}.txt" # uncompressed corpus
@@ -71,11 +78,11 @@ lm_counts="${tmp_dir}/${corpus_name}.counts" # corpus vocabulary with counts (al
 lm_vocab="${tmp_dir}/${corpus_name}.vocab" # corpus vocabulary used for training (most frequent words)
 lm_arpa="${tmp_dir}/${lm_basename}.arpa" # ARPA file
 
-lm_binary="${lm_dir}/${lm_basename}.klm" # KenLM binary file (this is the result of the script)
+lm_binary="${target_dir}/${lm_basename}.klm" # KenLM binary file (this is the result of the script)
 
 # create target directories if the don't exist yet
+mkdir -p $target_dir
 mkdir -p $tmp_dir
-mkdir -p $lm_dir
 # #################################
 
 echo "creating $order-gram model from Wikipedia dump"
