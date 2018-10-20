@@ -7,7 +7,7 @@ The script is located at [create_lm.sh](./create_lm.sh). Type `./create_lm.sh -h
 ### Example usage
 ```bash
 # create a 4-gram LM for German using the 400k most frequent words and probing as data structure. Artifacts will be removed after estimation. 
-./create_lm.sh -l de -o 4 -t 400000 -d probing -r
+./create_lm.sh -l de -o 4 -m 400000 -d probing -r
 ```
 
 ## Dependencies
